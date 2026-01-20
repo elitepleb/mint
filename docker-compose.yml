@@ -31,3 +31,8 @@ services:
       - "./Caddyfile:/etc/caddy/Caddyfile:z"
     ports:
       - "8443:8443"
+
+  tor:
+    image: dockurr/tor
+    ports:
+      - "127.0.0.1:9050:9050"

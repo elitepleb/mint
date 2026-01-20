@@ -411,6 +411,12 @@ defmodule Mint.HTTP do
           {:ok, t()} | {:error, Types.error()}
   def connect(scheme, address, port, opts \\ []) do
     case Keyword.fetch(opts, :proxy) do
+      {:ok, {:socks5, proxy_host, proxy_port}} ->
+        opts = Keyword.put(opts, :transport, Mint.Core.Transport.SOCKS)
+        opts = Keyword.put(opts, :proxy_host, proxy_host)
+        opts = Keyword.put(opts, :proxy_port, proxy_port)
+        Mint.Negotiate.connect(scheme, address, port, opts)
+
       {:ok, {proxy_scheme, proxy_address, proxy_port, proxy_opts}} ->
         case Util.scheme_to_transport(scheme) do
           Transport.TCP ->

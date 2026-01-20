@@ -265,4 +265,27 @@ defmodule Mint.IntegrationTest do
       end
     end
   end
+
+  describe "socks" do
+    @describetag :socks
+
+    test "connect through SOCKS proxy to check.torproject.org" do
+      assert {:ok, conn} =
+               HTTP.connect(:https, "check.torproject.org", 443,
+                 proxy: {:socks5, "localhost", 9050}
+               )
+
+      assert {:ok, conn, request} = HTTP.request(conn, "GET", "/", [], nil)
+      assert {:ok, _conn, responses} = receive_stream(conn)
+
+      assert [status, headers | responses] = responses
+      assert {:status, ^request, 200} = status
+      assert {:headers, ^request, headers} = headers
+      assert is_list(headers)
+
+      body = merge_body(responses, request)
+
+      assert body =~ "Congratulations. This browser is configured to use Tor."
+    end
+  end
 end

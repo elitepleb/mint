@@ -145,14 +145,37 @@ defmodule Mint.HTTP1 do
     # TODO: Also ALPN negotiate HTTP1?
 
     hostname = Mint.Core.Util.hostname(opts, address)
-    transport = Util.scheme_to_transport(scheme)
+    transport = Keyword.get(opts, :transport, Util.scheme_to_transport(scheme))
 
     transport_opts =
       Keyword.get(opts, :transport_opts, [])
+      |> Keyword.merge(
+        Keyword.take(opts, [
+          :transport,
+          :proxy_host,
+          :proxy_port,
+          :cacertfile,
+          :certfile,
+          :keyfile,
+          :password,
+          :verify,
+          :verify_fun
+        ])
+      )
       |> Keyword.put(:hostname, hostname)
 
     with {:ok, socket} <- transport.connect(address, port, transport_opts) do
-      initiate(scheme, socket, hostname, port, opts)
+      # If using custom transport for https, upgrade to SSL
+      if scheme == :https and transport != Mint.Core.Transport.SSL do
+        with {:ok, socket} <-
+               Mint.Core.Transport.SSL.upgrade(socket, :http, hostname, port, opts) do
+          opts = Keyword.put(opts, :transport, Mint.Core.Transport.SSL)
+          initiate(scheme, socket, hostname, port, opts)
+        end
+      else
+        opts = Keyword.put(opts, :transport, transport)
+        initiate(scheme, socket, hostname, port, opts)
+      end
     end
   end
 

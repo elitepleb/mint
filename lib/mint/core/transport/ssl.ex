@@ -348,7 +348,7 @@ defmodule Mint.Core.Transport.SSL do
   end
 
   @impl true
-  def upgrade(socket, :http, hostname, _port, opts) do
+  def upgrade(socket, _scheme, hostname, _port, opts) do
     hostname = String.to_charlist(hostname)
     timeout = Keyword.get(opts, :timeout, @default_timeout)
 
@@ -356,10 +356,6 @@ defmodule Mint.Core.Transport.SSL do
     Mint.Core.Transport.TCP.setopts(socket, active: false)
 
     wrap_err(:ssl.connect(socket, ssl_opts(hostname, opts), timeout))
-  end
-
-  def upgrade(_socket, :https, _hostname, _port, _opts) do
-    raise "nested SSL sessions are not supported"
   end
 
   @impl true
@@ -432,7 +428,7 @@ defmodule Mint.Core.Transport.SSL do
     default_ssl_opts(hostname)
     |> Keyword.merge(opts)
     |> Keyword.merge(@transport_opts)
-    |> Keyword.drop([:timeout, :inet4, :inet6])
+    |> Keyword.drop([:timeout, :inet4, :inet6, :proxy_host, :proxy_port, :transport])
     |> add_verify_opts(hostname)
     |> remove_incompatible_ssl_opts()
     |> add_ciphers_opt()

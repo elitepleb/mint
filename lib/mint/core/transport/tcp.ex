@@ -25,7 +25,16 @@ defmodule Mint.Core.Transport.TCP do
     opts =
       opts
       |> Keyword.merge(@transport_opts)
-      |> Keyword.drop([:alpn_advertised_protocols, :timeout, :inet4, :inet6])
+      |> Keyword.drop([
+        :alpn_advertised_protocols,
+        :timeout,
+        :inet4,
+        :inet6,
+        :cacertfile,
+        :proxy_host,
+        :proxy_port,
+        :transport
+      ])
 
     if inet6? do
       # Try inet6 first, then fall back to the defaults provided by

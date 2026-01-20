@@ -68,16 +68,44 @@ defmodule Mint.Negotiate do
   end
 
   defp connect_negotiate(scheme, address, port, opts) do
-    transport = Util.scheme_to_transport(scheme)
+    transport = Keyword.get(opts, :transport, Util.scheme_to_transport(scheme))
     hostname = Mint.Core.Util.hostname(opts, address)
 
     transport_opts =
-      opts
-      |> Keyword.get(:transport_opts, [])
+      Keyword.get(opts, :transport_opts, [])
+      |> Keyword.merge(
+        Keyword.take(opts, [
+          :transport,
+          :proxy_host,
+          :proxy_port,
+          :cacertfile,
+          :certfile,
+          :keyfile,
+          :password,
+          :verify,
+          :verify_fun
+        ])
+      )
       |> Keyword.merge(@transport_opts)
       |> Keyword.put(:hostname, hostname)
 
     with {:ok, transport_state} <- transport.connect(address, port, transport_opts) do
+      transport_state =
+        if scheme == :https && transport != Mint.Core.Transport.SSL do
+          {:ok, ssl_socket} =
+            Mint.Core.Transport.SSL.upgrade(
+              transport_state,
+              scheme,
+              hostname,
+              port,
+              transport_opts
+            )
+
+          ssl_socket
+        else
+          transport_state
+        end
+
       alpn_negotiate(scheme, transport_state, hostname, port, opts)
     end
   end
